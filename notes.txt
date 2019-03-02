@@ -1,0 +1,22 @@
+In LiPaD database, appears under a variety of `maintopic` values:
+
+SQL:
+
+```
+SELECT maintopic, COUNT(maintopic) FROM dilipadsite_basehansard
+  WHERE
+    (position('question' in LOWER(maintopic)) > 0)
+  GROUP BY maintopic
+  ORDER BY count DESC
+```
+
+Some that seem relevant, to me:
+
+```
+ORAL QUESTION PERIOD
+QUESTIONS
+Oral Questions
+Oral Question Period
+QUESTIONS.
+ORAL QUESTIONS
+```

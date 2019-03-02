@@ -41,6 +41,7 @@ statement_similarity <- statements_by_word_frequency %>%
 
 ## Retrieve the statements with the highest similarity scores.
 top_similar_statements <- statement_similarity %>%
+  filter(value > 0.5) %>%
   top_n(100, value)
 
 ## Just get unique IDs of documents that have high similarity scores.

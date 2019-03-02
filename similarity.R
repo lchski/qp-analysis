@@ -11,15 +11,19 @@ stop_words <- stop_words %>% add_row(word = "speaker", lexicon = "custom")
 
 # ANALYSIS
 
-## Load the statements we want to work with.
-## NB: Change the filter as you see fit.
-statements_to_analyse <- qp_statements %>%
+## Load the set of statements we want to work with.
+base_statements <- qp_statements %>%
+  filter(! procedural) %>%
+  filter(! is.na(politician_id))
+
+## NB: Change the filter(s) as you see fit.
+## Examples: time, party, parliamentary session.
+statements_to_analyse <- base_statements %>%
+  inner_join(mps, by = c("member_id" = "id")) %>%
   filter(time > "2018-01-01")
 
 ## Reduce the statements to lemmatized tokens. (Thanks Busa!)
 statements_by_token <- statements_to_analyse %>%
-  filter(! procedural) %>%
-  filter(! is.na(politician_id)) %>%
   select(id, content_en_plaintext) %>%
   unnest_tokens(word, content_en_plaintext) %>%
   anti_join(stop_words) %>%
@@ -37,12 +41,13 @@ statement_similarity <- statements_by_word_frequency %>%
 
 ## Retrieve the statements with the highest similarity scores.
 top_similar_statements <- statement_similarity %>%
-  filter(value > 0.5) %>%
-  top_n(100, value) %>%
-  select(id.x, id.y)
+  top_n(100, value)
+
+## Just get unique IDs of documents that have high similarity scores.
+top_similar_statement_ids <- union(top_similar_statements$id.x, top_similar_statements$id.y)
 
 ## View the statements with the highest scores.
-qp_statements %>%
-  select(id, time, h2_en, who_en, content_en_plaintext) %>%
-  filter(id %in% top_similar_statements$id.x | id %in% top_similar_statements$id.y) %>%
+statements_to_analyse %>%
+  select(id, time, h2_en, who_en, short_name_en, content_en_plaintext) %>%
+  filter(id %in% top_similar_statement_ids) %>%
   View()

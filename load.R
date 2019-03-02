@@ -36,7 +36,7 @@ mps <- tbl(con, "core_electedmember") %>%
 
 sampleData <- qp_statements %>% top_n(1000, id)
 
-tinyData <- sampleData %>%
+tinyData <- qp_statements %>%
   select(id, time, h2_en, who_en, content_en_plaintext) %>%
   filter(str_detect(who_en, "Bardish")) %>%
   unnest_tokens(word, content_en_plaintext) %>%
@@ -48,3 +48,11 @@ tinyData %>%
   group_by(word) %>%
   summarize(count = n()) %>%
   arrange(-count)
+
+tinyData %>%
+  count(id, word, sort = TRUE) %>%
+  ungroup() %>%
+  bind_tf_idf(word, id, n) %>%
+  arrange(tf_idf) %>%
+  left_join(qp_statements) %>%
+  select(id:tf_idf, time, h2_en, who_en)

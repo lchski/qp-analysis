@@ -38,7 +38,7 @@ statement_similarity <- statements_by_word_frequency %>%
 ## Retrieve the statements with the highest similarity scores.
 top_similar_statements <- statement_similarity %>%
   filter(value > 0.5) %>%
-  top_n(-100, value) %>%
+  top_n(100, value) %>%
   select(id.x, id.y)
 
 ## View the statements with the highest scores.

@@ -52,3 +52,37 @@ statements_to_analyse %>%
   select(id, time, h2_en, who_en, short_name_en, content_en_plaintext) %>%
   filter(id %in% top_similar_statement_ids) %>%
   View()
+
+
+
+## CLUSTERING
+
+### Start with statements that have some similarity.
+cluster_statements <- statement_similarity %>%
+  filter(value > 0.5)
+cluster_statement_ids <- union(cluster_statements$id.x, cluster_statements$id.y)
+
+### Get the statement full text.
+cluster_statements_to_analyse <- statements_to_analyse %>%
+  filter(id %in% cluster_statement_ids)
+
+### Reduce the statements to lemmatized tokens. (Thanks Busa!)
+cluster_statements_by_token <- cluster_statements_to_analyse %>%
+  select(id, content_en_plaintext) %>%
+  unnest_tokens(word, content_en_plaintext) %>%
+  anti_join(stop_words) %>%
+  mutate(word = wordStem(word))
+
+### Calculate the TF-IDF score for each word.
+cluster_statements_by_word_frequency <- cluster_statements_by_token %>%
+  count(id, word, sort = TRUE) %>%
+  ungroup() %>%
+  bind_tf_idf(word, id, n)
+
+cluster_statements_with_reduced_dimensions <- cluster_statements_by_word_frequency %>%
+  do_svd.kv(id, word, tf_idf, n_component = 3)
+  
+cluster_statements_with_reduced_dimensions_spread <- cluster_statements_with_reduced_dimensions %>%
+  spread(new.dimension, value)
+
+cluster_statements_with_reduced_dimensions_spread

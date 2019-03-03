@@ -5,6 +5,10 @@ library(tidytext)
 library(SnowballC)
 library(exploratory)
 
+library(cluster)
+library(factoextra)
+library(NbClust)
+
 data("stop_words")
 stop_words <- stop_words %>% add_row(word = "speaker", lexicon = "custom")
 
@@ -85,4 +89,19 @@ cluster_statements_with_reduced_dimensions <- cluster_statements_by_word_frequen
 cluster_statements_with_reduced_dimensions_spread <- cluster_statements_with_reduced_dimensions %>%
   spread(new.dimension, value)
 
-cluster_statements_with_reduced_dimensions_spread
+optimal_cluster_count <- NbClust(cluster_statements_with_reduced_dimensions_spread, method = "complete")
+
+clusters2 <- kmeans(cluster_statements_with_reduced_dimensions_spread, centers = 2, nstart = 25)
+clusters3 <- kmeans(cluster_statements_with_reduced_dimensions_spread, centers = 3, nstart = 25)
+clusters7 <- kmeans(cluster_statements_with_reduced_dimensions_spread, centers = 7, nstart = 25)
+clusters12 <- kmeans(cluster_statements_with_reduced_dimensions_spread, centers = 12, nstart = 25)
+
+fviz_nbclust(cluster_statements_with_reduced_dimensions_spread, kmeans, method = "wss")
+
+p1 <- fviz_cluster(clusters2, geom = "point", data = cluster_statements_with_reduced_dimensions_spread) + ggtitle("k = 2")
+p2 <- fviz_cluster(clusters3, geom = "point",  data = cluster_statements_with_reduced_dimensions_spread) + ggtitle("k = 3")
+p3 <- fviz_cluster(clusters7, geom = "point",  data = cluster_statements_with_reduced_dimensions_spread) + ggtitle("k = 7")
+p4 <- fviz_cluster(clusters12, geom = "point",  data = cluster_statements_with_reduced_dimensions_spread) + ggtitle("k = 12")
+
+library(gridExtra)
+grid.arrange(p1, p2, p3, p4, nrow = 2)

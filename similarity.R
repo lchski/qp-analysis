@@ -18,12 +18,12 @@ stop_words <- stop_words %>% add_row(word = "speaker", lexicon = "custom")
 ## Load the set of statements we want to work with.
 base_statements <- qp_statements %>%
   filter(! procedural) %>%
-  filter(! is.na(politician_id))
+  filter(! is.na(politician_id)) %>%
+  inner_join(mps, by = c("member_id" = "id"))
 
 ## NB: Change the filter(s) as you see fit.
 ## Examples: time, party, parliamentary session.
 statements_to_analyse <- base_statements %>%
-  inner_join(mps, by = c("member_id" = "id")) %>%
   filter(time > "2018-01-01")
 
 ## Reduce the statements to lemmatized tokens. (Thanks Busa!)
@@ -105,3 +105,52 @@ p4 <- fviz_cluster(clusters12, geom = "point",  data = cluster_statements_with_r
 
 library(gridExtra)
 grid.arrange(p1, p2, p3, p4, nrow = 2)
+
+
+## FUNCTIONIZING
+
+analyse_statement_similarity <- function(statements, similarity_threshold = 0.9) {
+  statements_by_tokenized_lemmas <- tokenize_by_lemma(statements)
+  statements_by_token_frequency <- calculate_word_frequencies(statements_by_tokenized_lemmas)
+  statements_scored_for_similarity <- score_document_similarities(statements_by_token_frequency)
+
+  statements_above_similarity_threshold <- statements_scored_for_similarity %>%
+    filter(value > similarity_threshold)
+
+  union(statements_above_similarity_threshold$id.x, statements_above_similarity_threshold$id.y)
+}
+
+tokenize_by_lemma <- function(statements) {
+  statements %>%
+    select(id, content_en_plaintext) %>%
+    unnest_tokens(word, content_en_plaintext) %>%
+    anti_join(stop_words) %>%
+    mutate(word = wordStem(word))
+}
+
+calculate_word_frequencies <- function(statements_by_tokenized_lemmas) {
+  statements_by_tokenized_lemmas %>%
+    count(id, word, sort = TRUE) %>%
+    ungroup() %>%
+    bind_tf_idf(word, id, n)
+}
+
+score_document_similarities <- function(statements_by_token_frequency) {
+  statements_by_token_frequency %>%
+    do_cosine_sim.kv(subject = id, key = word, value = tf_idf, distinct = TRUE)
+}
+
+view_specific_statements <- function(all_statements, statement_ids) {
+  all_statements %>%
+    select(id, time, h2_en, who_en, short_name_en, content_en_plaintext) %>%
+    filter(id %in% statement_ids)
+}
+
+view_specific_statements(
+  statements_to_analyse,
+  analyse_statement_similarity(
+    base_statements %>%
+      filter(time > "2018-12-01"),
+    0.75
+  )
+) %>% View()

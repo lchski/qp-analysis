@@ -117,7 +117,7 @@ analyse_statement_similarity <- function(statements, similarity_threshold = 0.9)
   statements_above_similarity_threshold <- statements_scored_for_similarity %>%
     filter(value > similarity_threshold)
 
-  union(statements_above_similarity_threshold$id.x, statements_above_similarity_threshold$id.y)
+  statements_above_similarity_threshold
 }
 
 tokenize_by_lemma <- function(statements) {
@@ -140,6 +140,14 @@ score_document_similarities <- function(statements_by_token_frequency) {
     do_cosine_sim.kv(subject = id, key = word, value = tf_idf, distinct = TRUE)
 }
 
+get_details_about_statement_pairs <- function(statement_pairs) {
+  statement_pairs %>%
+    mutate(pair_number = row_number()) %>%
+    rowwise() %>%
+    mutate(statements = list(view_specific_statements(statements_to_analyse, c(id.x, id.y)))) %>%
+    select(pair_number, value, statements)
+}
+
 view_specific_statements <- function(all_statements, statement_ids) {
   all_statements %>%
     select(id, time, h2_en, who_en, short_name_en, content_en_plaintext) %>%
@@ -154,3 +162,8 @@ view_specific_statements(
     0.75
   )
 ) %>% View()
+
+analyse_statement_similarity(
+  base_statements %>%
+    filter(time > "2018-12-01")
+) %>% get_details_about_statement_pairs()

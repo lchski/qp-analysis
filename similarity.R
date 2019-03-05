@@ -1,6 +1,7 @@
 # SETUP
 source("load.R")
 
+library(lubridate)
 library(tidytext)
 library(SnowballC)
 library(exploratory)
@@ -19,7 +20,8 @@ stop_words <- stop_words %>% add_row(word = "speaker", lexicon = "custom")
 base_statements <- qp_statements %>%
   filter(! procedural) %>%
   filter(! is.na(politician_id)) %>%
-  inner_join(mps, by = c("member_id" = "id"))
+  inner_join(mps, by = c("member_id" = "id")) %>%
+  mutate(year = year(time), week = week(time), year_week = as.integer(paste0(year, week)))
 
 ## NB: Change the filter(s) as you see fit.
 ## Examples: time, party, parliamentary session.
@@ -140,18 +142,29 @@ score_document_similarities <- function(statements_by_token_frequency) {
     do_cosine_sim.kv(subject = id, key = word, value = tf_idf, distinct = TRUE)
 }
 
-get_details_about_statement_pairs <- function(statement_pairs) {
+get_details_about_statement_pairs <- function(statement_pairs, all_statements = statements_to_analyse) {
   statement_pairs %>%
     mutate(pair_number = row_number()) %>%
     rowwise() %>%
-    mutate(statements = list(view_specific_statements(statements_to_analyse, c(id.x, id.y)))) %>%
+    mutate(statements = list(view_specific_statements(all_statements, c(id.x, id.y)))) %>%
     select(pair_number, value, statements)
 }
 
 view_specific_statements <- function(all_statements, statement_ids) {
   all_statements %>%
-    select(id, time, h2_en, who_en, short_name_en, content_en_plaintext) %>%
+    select(id, time, year_week, h2_en, who_en, short_name_en, content_en_plaintext) %>%
     filter(id %in% statement_ids)
+}
+
+find_pairs_with_different_dates <- function(pairs) {
+  pair_numbers <- pairs %>%
+    mutate(date = paste(year(time), yday(time), sep="-")) %>%
+    group_by(pair_number) %>%
+    summarize(dates = n_distinct(date)) %>%
+    filter(dates > 1) %>%
+    pull(pair_number)
+
+  pairs %>% filter(pair_number %in% pair_numbers)
 }
 
 view_specific_statements(
@@ -163,7 +176,32 @@ view_specific_statements(
   )
 ) %>% View()
 
-analyse_statement_similarity(
+govt <- analyse_statement_similarity(
   base_statements %>%
-    filter(time > "2018-12-01")
-) %>% get_details_about_statement_pairs()
+    filter(year_week > 201825)
+) %>%
+  get_details_about_statement_pairs()
+
+opp <- analyse_statement_similarity(
+  base_statements %>%
+    filter(slug.x != "liberal") %>%
+    filter(year_week > 201839),
+  similarity_threshold = 0.6
+) %>%
+  get_details_about_statement_pairs()
+
+govt %>%
+  unnest() %>%
+  find_pairs_with_different_dates() %>%
+  select(pair_number, time, value, content_en_plaintext, who_en, id:short_name_en) %>%
+  View()
+
+govt %>%
+  unnest() %>%
+  select(pair_number, value, content_en_plaintext, who_en, id:short_name_en) %>%
+  View()
+
+  #group_by(pair_number, value) %>%
+  #nest() %>%
+  View()
+

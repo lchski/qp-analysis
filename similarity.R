@@ -152,19 +152,18 @@ get_details_about_statement_pairs <- function(statement_pairs, all_statements = 
 
 view_specific_statements <- function(all_statements, statement_ids) {
   all_statements %>%
-    select(id, time, year_week, h2_en, who_en, short_name_en, content_en_plaintext) %>%
     filter(id %in% statement_ids)
 }
 
-find_pairs_with_different_dates <- function(pairs) {
-  pair_numbers <- pairs %>%
-    mutate(date = paste(year(time), yday(time), sep="-")) %>%
-    group_by(pair_number) %>%
-    summarize(dates = n_distinct(date)) %>%
-    filter(dates > 1) %>%
-    pull(pair_number)
+view_useful_fields <- function(statements, ...) {
+  statements %>%
+    select(id, time, year_week, h2_en, who_en, short_name_en, content_en_plaintext, ...)
+}
 
-  pairs %>% filter(pair_number %in% pair_numbers)
+find_pairs_with_different_dates <- function(pairs) {
+  pairs %>%
+    mutate(date = paste(year(time), yday(time), sep="-")) %>%
+    find_pairs_with_different_values(column_to_compare = date)
 }
 
 find_pairs_with_different_values <- function(pairs, column_to_compare) {
@@ -187,7 +186,7 @@ view_specific_statements(
       filter(time > "2018-12-01"),
     0.75
   )
-) %>% View()
+) %>% view_useful_fields() %>% View()
 
 govt <- analyse_statement_similarity(
   base_statements %>%
@@ -209,14 +208,7 @@ govt %>%
   select(pair_number, time, value, content_en_plaintext, who_en, id:short_name_en) %>%
   View()
 
-govt %>%
-  unnest() %>%
-  mutate(date = paste(year(time), yday(time), sep="-")) %>%
-  find_pairs_with_different_values(column_to_compare = date) %>%
-  select(pair_number, time, value, content_en_plaintext, who_en, id:short_name_en) %>%
-  View()
-
-govt %>%
+opp %>%
   unnest() %>%
   find_pairs_with_different_values(column_to_compare = who_en) %>%
   select(pair_number, time, value, content_en_plaintext, who_en, id:short_name_en) %>%

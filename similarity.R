@@ -167,6 +167,19 @@ find_pairs_with_different_dates <- function(pairs) {
   pairs %>% filter(pair_number %in% pair_numbers)
 }
 
+find_pairs_with_different_values <- function(pairs, column_to_compare) {
+  require("lazyeval")
+  summarize_formula <- interp(~n_distinct(y), y = as.name(column_to_compare))
+  
+  pair_numbers <- pairs %>%
+    group_by(pair_number) %>%
+    summarize_(comparisons = n_distinct(column_to_compare)) %>%
+    filter(comparisons > 1) %>%
+    pull(pair_number)
+
+  pairs %>% filter(pair_number %in% pair_numbers)
+}
+
 view_specific_statements(
   statements_to_analyse,
   analyse_statement_similarity(
@@ -192,7 +205,8 @@ opp <- analyse_statement_similarity(
 
 govt %>%
   unnest() %>%
-  find_pairs_with_different_dates() %>%
+  mutate(date = paste(year(time), yday(time), sep="-")) %>%
+  find_pairs_with_different_values(column_to_compare = date) %>%
   select(pair_number, time, value, content_en_plaintext, who_en, id:short_name_en) %>%
   View()
 

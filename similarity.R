@@ -168,12 +168,12 @@ find_pairs_with_different_dates <- function(pairs) {
 }
 
 find_pairs_with_different_values <- function(pairs, column_to_compare) {
-  require("lazyeval")
-  summarize_formula <- interp(~n_distinct(y), y = as.name(column_to_compare))
+  col_to_compare <- enquo(column_to_compare)
+  print(col_to_compare)
   
   pair_numbers <- pairs %>%
     group_by(pair_number) %>%
-    summarize_(comparisons = n_distinct(column_to_compare)) %>%
+    summarize(comparisons = n_distinct(!! col_to_compare)) %>%
     filter(comparisons > 1) %>%
     pull(pair_number)
 
@@ -205,8 +205,20 @@ opp <- analyse_statement_similarity(
 
 govt %>%
   unnest() %>%
+  find_pairs_with_different_dates() %>%
+  select(pair_number, time, value, content_en_plaintext, who_en, id:short_name_en) %>%
+  View()
+
+govt %>%
+  unnest() %>%
   mutate(date = paste(year(time), yday(time), sep="-")) %>%
   find_pairs_with_different_values(column_to_compare = date) %>%
+  select(pair_number, time, value, content_en_plaintext, who_en, id:short_name_en) %>%
+  View()
+
+govt %>%
+  unnest() %>%
+  find_pairs_with_different_values(column_to_compare = who_en) %>%
   select(pair_number, time, value, content_en_plaintext, who_en, id:short_name_en) %>%
   View()
 

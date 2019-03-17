@@ -1,3 +1,4 @@
+## Analyzers
 analyse_statement_similarity <- function(statements, similarity_threshold = 0.9) {
   statements_by_tokenized_lemmas <- tokenize_by_lemma(statements)
   statements_by_token_frequency <- calculate_word_frequencies(statements_by_tokenized_lemmas)
@@ -29,6 +30,8 @@ score_document_similarities <- function(statements_by_token_frequency) {
     do_cosine_sim.kv(subject = id, key = word, value = tf_idf, distinct = TRUE)
 }
 
+
+## Extractors
 get_details_about_statement_pairs <- function(statement_pairs, all_statements = statements_to_analyse) {
   statement_pairs %>%
     mutate(pair_number = row_number()) %>%
@@ -37,16 +40,8 @@ get_details_about_statement_pairs <- function(statement_pairs, all_statements = 
     select(pair_number, value, statements)
 }
 
-view_specific_statements <- function(all_statements, statement_ids) {
-  all_statements %>%
-    filter(id %in% statement_ids)
-}
 
-view_useful_fields <- function(statements, ...) {
-  statements %>%
-    select(id, time, year_week, h2_en, who_en, short_name_en, content_en_plaintext, ...)
-}
-
+## Filters
 find_pairs_with_different_dates <- function(pairs) {
   pairs %>%
     mutate(date = paste(year(time), yday(time), sep="-")) %>%
@@ -64,3 +59,16 @@ find_pairs_with_different_values <- function(pairs, column_to_compare) {
   
   pairs %>% filter(pair_number %in% pair_numbers)
 }
+
+
+## Viewers
+view_specific_statements <- function(all_statements, statement_ids) {
+  all_statements %>%
+    filter(id %in% statement_ids)
+}
+
+view_useful_fields <- function(statements, ...) {
+  statements %>%
+    select(id, time, year_week, h2_en, who_en, short_name_en, content_en_plaintext, ...)
+}
+

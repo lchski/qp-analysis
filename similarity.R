@@ -1,5 +1,6 @@
 # SETUP
 source("load.R")
+source("lib/similarity.R")
 
 library(lubridate)
 library(tidytext)
@@ -109,75 +110,9 @@ library(gridExtra)
 grid.arrange(p1, p2, p3, p4, nrow = 2)
 
 
-## FUNCTIONIZING
 
-analyse_statement_similarity <- function(statements, similarity_threshold = 0.9) {
-  statements_by_tokenized_lemmas <- tokenize_by_lemma(statements)
-  statements_by_token_frequency <- calculate_word_frequencies(statements_by_tokenized_lemmas)
-  statements_scored_for_similarity <- score_document_similarities(statements_by_token_frequency)
 
-  statements_above_similarity_threshold <- statements_scored_for_similarity %>%
-    filter(value > similarity_threshold)
 
-  statements_above_similarity_threshold
-}
-
-tokenize_by_lemma <- function(statements) {
-  statements %>%
-    select(id, content_en_plaintext) %>%
-    unnest_tokens(word, content_en_plaintext) %>%
-    anti_join(stop_words) %>%
-    mutate(word = wordStem(word))
-}
-
-calculate_word_frequencies <- function(statements_by_tokenized_lemmas) {
-  statements_by_tokenized_lemmas %>%
-    count(id, word, sort = TRUE) %>%
-    ungroup() %>%
-    bind_tf_idf(word, id, n)
-}
-
-score_document_similarities <- function(statements_by_token_frequency) {
-  statements_by_token_frequency %>%
-    do_cosine_sim.kv(subject = id, key = word, value = tf_idf, distinct = TRUE)
-}
-
-get_details_about_statement_pairs <- function(statement_pairs, all_statements = statements_to_analyse) {
-  statement_pairs %>%
-    mutate(pair_number = row_number()) %>%
-    rowwise() %>%
-    mutate(statements = list(view_specific_statements(all_statements, c(id.x, id.y)))) %>%
-    select(pair_number, value, statements)
-}
-
-view_specific_statements <- function(all_statements, statement_ids) {
-  all_statements %>%
-    filter(id %in% statement_ids)
-}
-
-view_useful_fields <- function(statements, ...) {
-  statements %>%
-    select(id, time, year_week, h2_en, who_en, short_name_en, content_en_plaintext, ...)
-}
-
-find_pairs_with_different_dates <- function(pairs) {
-  pairs %>%
-    mutate(date = paste(year(time), yday(time), sep="-")) %>%
-    find_pairs_with_different_values(column_to_compare = date)
-}
-
-find_pairs_with_different_values <- function(pairs, column_to_compare) {
-  col_to_compare <- enquo(column_to_compare)
-  print(col_to_compare)
-  
-  pair_numbers <- pairs %>%
-    group_by(pair_number) %>%
-    summarize(comparisons = n_distinct(!! col_to_compare)) %>%
-    filter(comparisons > 1) %>%
-    pull(pair_number)
-
-  pairs %>% filter(pair_number %in% pair_numbers)
-}
 
 view_specific_statements(
   statements_to_analyse,

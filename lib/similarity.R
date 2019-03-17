@@ -7,7 +7,18 @@ analyse_statement_similarity <- function(statements, similarity_threshold = 0.9)
   statements_above_similarity_threshold <- statements_scored_for_similarity %>%
     filter(value > similarity_threshold)
   
-  statements_above_similarity_threshold
+  statement_ids_above_threshold <- union(
+    statements_above_similarity_threshold$id.x,
+    statements_above_similarity_threshold$id.y
+  )
+
+  list(
+    "tokenized_lemmas" = statements_by_tokenized_lemmas,
+    "token_frequency"  = statements_by_token_frequency,
+    "similarity_scores"= statements_scored_for_similarity,
+    "above_threshold"  = statements_above_similarity_threshold,
+    "above_threshold_ids" = statement_ids_above_threshold
+  )
 }
 
 tokenize_by_lemma <- function(statements) {
@@ -32,7 +43,11 @@ score_document_similarities <- function(statements_by_token_frequency) {
 
 
 ## Extractors
-get_details_about_statement_pairs <- function(statement_pairs, all_statements = statements_to_analyse) {
+get_details_about_statement_pairs <- function(statement_pairs, all_statements = base_statements) {
+  if("above_threshold" %in% names(statement_pairs)) {
+    statement_pairs <- statement_pairs %>% extract2("above_threshold")
+  }
+
   statement_pairs %>%
     mutate(pair_number = row_number()) %>%
     rowwise() %>%

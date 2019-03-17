@@ -55,7 +55,6 @@ find_pairs_with_different_dates <- function(pairs) {
 
 find_pairs_with_different_values <- function(pairs, column_to_compare) {
   col_to_compare <- enquo(column_to_compare)
-  print(col_to_compare)
   
   pair_numbers <- pairs %>%
     group_by(pair_number) %>%

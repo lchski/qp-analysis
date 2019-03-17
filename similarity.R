@@ -89,6 +89,7 @@ view_specific_statements(
 
 govt <- analyse_statement_similarity(
   base_statements %>%
+    filter(slug.x == "liberal") %>%
     filter(year_week > 201825)
 ) %>%
   get_details_about_statement_pairs()
@@ -117,8 +118,3 @@ govt %>%
   unnest() %>%
   select(pair_number, value, content_en_plaintext, who_en, id:short_name_en) %>%
   View()
-
-  #group_by(pair_number, value) %>%
-  #nest() %>%
-  View()
-

@@ -21,16 +21,22 @@ cluster_statements_kmeans <- function(statements_to_cluster) {
     )
   }
   
+  visualize_clusters <- function(cluster_count = optimal_cluster_count) {
+    fviz_cluster(clusterer(cluster_count), geom = "point", data = statements_with_reduced_dimensions_spread) +
+      ggtitle(paste0("k = ", cluster_count))
+  }
+
   optimal_clusters <- clusterer(optimal_cluster_count)
 
   clustered_statements <- statements_to_cluster %>%
     mutate(cluster = optimal_clusters$cluster)
 
   list(
-    "scored_statements_by_id" = statements_with_reduced_dimensions_spread,
+    "statements_scored_by_id" = statements_with_reduced_dimensions_spread,
     "clusterer" = clusterer,
-    "clusters" = clusters,
-    "cluster_count" = optimal_cluster_count,
-    "clustered_statements" = clustered_statements
+    "visualize_clusters" = visualize_clusters,
+    "optimal_clusters" = optimal_clusters,
+    "optimal_clusters_count" = optimal_cluster_count,
+    "statements_clustered_optimally" = clustered_statements
   )
 }

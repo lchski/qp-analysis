@@ -1,6 +1,7 @@
 # SETUP
 source("load.R")
 source("lib/similarity.R")
+source("lib/cluster.R")
 
 library(magrittr)
 library(lubridate)
@@ -31,8 +32,8 @@ base_statements <- qp_statements %>%
 target_ids <- analyse_statement_similarity(
   statements = base_statements %>%
     filter(slug.x == "liberal") %>%
-    filter(year_week > 201848),
-  similarity_threshold = 0.5
+    filter(year_week > 201844),
+  similarity_threshold = 0.9
 ) %>% extract2("above_threshold_ids")
 
 target_statements <- base_statements %>%
@@ -40,8 +41,17 @@ target_statements <- base_statements %>%
 
 test <- cluster_statements_kmeans(target_statements)
 
-fviz_cluster(test$clusters, geom = "point", data = test$scored_statements_by_id) +
-  ggtitle(paste0("k = ", test$cluster_count))
+test$visualize_clusters(15)
+
+test$statements_clustered_optimally %>%
+  group_by(cluster) %>%
+  summarize(count = n())
+
+target_statements %>%
+  mutate(cluster = test$clusterer(6)$cluster) %>%
+  view_useful_fields(cluster) %>%
+  arrange(cluster) %>%
+  View()
 
 
 
